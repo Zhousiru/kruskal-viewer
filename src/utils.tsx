@@ -1,4 +1,4 @@
-import { LinkDatum, NodeDatum } from './types'
+import { HistoryPatch, LinkDatum, NodeDatum } from './types'
 
 export function genRandomGraphMatrix(n: number) {
   class UnionFind {
@@ -45,7 +45,7 @@ export function genRandomGraphMatrix(n: number) {
   const edges = []
   for (let i = 0; i < n; i++) {
     for (let j = i + 1; j < n; j++) {
-      edges.push([i, j, Math.floor(Math.random() * 10) + 1]) // Random weight between 1 and 100
+      edges.push([i, j, Math.floor(Math.random() * 10) + 1])
     }
   }
 
@@ -66,7 +66,7 @@ export function genRandomGraphMatrix(n: number) {
   }
 
   // Add additional random edges
-  const numExtraEdges = Math.floor(Math.random() * 10) + 1
+  const numExtraEdges = Math.floor(Math.random() * ((n * (n - 1)) / 2 - n + 1))
   let extraEdgesAdded = 0
   while (extraEdgesAdded < numExtraEdges) {
     const u = Math.floor(Math.random() * n)
@@ -134,5 +134,14 @@ export function delLastNode(nodes: NodeDatum[], links: LinkDatum[]) {
     if (element.source.nodeId === delIndex || element.target.nodeId === delIndex) {
       links.splice(index, 1)
     }
+  }
+}
+
+export function applyPatch(nodes: NodeDatum[], links: LinkDatum[], patch: HistoryPatch) {
+  for (const node of nodes) {
+    node.colorGroup = patch.nodes.find((n) => n.nodeId === node.nodeId)!.colorGroup
+  }
+  for (const link of links) {
+    link.status = patch.links.find((l) => l.linkId === link.linkId)!.status
   }
 }

@@ -79,7 +79,7 @@ button {
   padding-inline: 1rem;
 }
 
-button:not([disabled]):hover {
+button:not(:disabled):hover {
   background-color: #000;
   color: #fff;
   cursor: pointer;
@@ -99,13 +99,17 @@ button:not([disabled]):hover {
   margin-block: 1rem;
 }
 
-.playback-slider::-webkit-slider-thumb {
+.playback-slider:not(:disabled)::-webkit-slider-thumb {
   appearance: none;
   width: 20px;
   height: 20px;
   border-radius: 10px;
   background: #000;
   cursor: pointer;
+}
+
+.playback-slider:disabled::-webkit-slider-thumb {
+  background: rgb(240, 240, 240);
 }
 
 .msg {
@@ -116,4 +120,8 @@ button:not([disabled]):hover {
   font-size: 1.2rem;
   word-break: break-all;
   text-align: justify;
+}
+
+.msg > p {
+  margin: 0;
 }

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import { GraphViewer } from './GraphViewer'
-import { LinkDatum, NodeDatum } from './types'
-import { addNode, delLastNode, dumpGraph, genRandomGraphMatrix } from './utils'
+import { kruskal } from './algo'
+import { HistoryPatch, LinkDatum, NodeDatum } from './types'
+import { addNode, applyPatch, delLastNode, dumpGraph, genRandomGraphMatrix } from './utils'
 
 function App() {
   const graphContainerRef = useRef<HTMLDivElement>(null)
@@ -15,6 +16,12 @@ function App() {
     nodes: NodeDatum[]
     links: LinkDatum[]
   }>({ nodes: [], links: [] })
+
+  const [algoHistory, setAlgoHistory] = useState<HistoryPatch[]>([])
+  const [historyMsg, setHistoryMsg] = useState('')
+  const [nowStep, setNowStep] = useState(-1)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const intervalId = useRef<number | null>(null)
 
   useEffect(() => {
     const observer = new ResizeObserver((e) => {
@@ -29,6 +36,22 @@ function App() {
       observer.disconnect()
     }
   }, [])
+
+  useEffect(() => {
+    if (nowStep < 0 || nowStep > algoHistory.length - 1) {
+      return
+    }
+    setGraphData((data) => {
+      const nodes = [...data.nodes]
+      const links = [...data.links]
+      applyPatch(nodes, links, algoHistory[nowStep])
+      return {
+        nodes,
+        links,
+      }
+    })
+    setHistoryMsg(algoHistory[nowStep].msg)
+  }, [algoHistory, nowStep])
 
   function handleClickPreset(id: number) {
     switch (id) {
@@ -90,6 +113,50 @@ function App() {
     setGraphData(dumpGraph(genRandomGraphMatrix(graphData.nodes.length)))
   }
 
+  function handleCompute() {
+    setAlgoHistory(kruskal(graphData.nodes, graphData.links))
+    setNowStep(0)
+  }
+
+  function handlePlay() {
+    if (intervalId.current) {
+      return
+    }
+
+    setNowStep(-1)
+    setHistoryMsg('即将开始')
+    setIsPlaying(true)
+
+    intervalId.current = setInterval(() => {
+      setNowStep((x) => {
+        if (x >= algoHistory.length - 2) {
+          clearInterval(intervalId.current!)
+          intervalId.current = null
+          setIsPlaying(false)
+        }
+        return x + 1
+      })
+    }, 1000)
+  }
+
+  function handleCancelPlay() {
+    clearInterval(intervalId.current!)
+    intervalId.current = null
+    setIsPlaying(false)
+  }
+
+  function handleDelOtherLink() {
+    const links = [...graphData.links]
+    for (let index = links.length - 1; index >= 0; index--) {
+      if (links[index].status === 'inactive') {
+        links.splice(index, 1)
+      }
+    }
+    setNowStep(-1)
+    setAlgoHistory([])
+    setGraphData({ nodes: graphData.nodes, links })
+  }
+
   return (
     <div className="container">
       <div className="control-plane">
@@ -98,29 +165,66 @@ function App() {
         <div className="control">
           <h3>1. 图设置</h3>
           <div className="preset">
-            <button onClick={() => handleClickPreset(0)}>预设 1</button>
-            <button onClick={() => handleClickPreset(1)}>预设 2</button>
+            <button disabled={isPlaying} onClick={() => handleClickPreset(0)}>
+              预设 1
+            </button>
+            <button disabled={isPlaying} onClick={() => handleClickPreset(1)}>
+              预设 2
+            </button>
           </div>
           <div className="node-num">
-            <button onClick={handleAddNode}>节点 ++</button>
-            <button onClick={handleDelNode}>节点 --</button>
-            <button onClick={handleRandom}>随机连接</button>
+            <button disabled={isPlaying} onClick={handleAddNode}>
+              节点 ++
+            </button>
+            <button disabled={isPlaying} onClick={handleDelNode}>
+              节点 --
+            </button>
+            <button disabled={isPlaying} onClick={handleRandom}>
+              随机连接
+            </button>
           </div>
           <h3>2. 计算</h3>
-          <button>开始计算</button>
+          <button onClick={handleCompute} disabled={isPlaying || graphData.links.length < 1}>
+            开始计算
+          </button>
           <h3>3. 可视化演示</h3>
           <div className="playback-control">
-            <button>播放</button>
-            <button>暂停</button>
+            <button onClick={handlePlay} disabled={algoHistory.length === 0}>
+              从头播放
+            </button>
+            <button disabled={!isPlaying} onClick={handleCancelPlay}>
+              取消播放
+            </button>
+            <button
+              disabled={algoHistory.length === 0 || nowStep !== algoHistory.length - 1}
+              onClick={handleDelOtherLink}
+            >
+              删除多余连接
+            </button>
             <input
               type="range"
               min="0"
-              max="40"
-              defaultValue="0"
+              max={algoHistory.length - 1}
+              value={nowStep}
+              onChange={(e) => setNowStep(Number(e.target.value))}
               className="playback-slider"
+              disabled={algoHistory.length === 0}
             ></input>
           </div>
-          <div className="msg">无消息</div>
+          <div className="msg">
+            {algoHistory.length === 0 || historyMsg === '' ? (
+              <p>无消息</p>
+            ) : nowStep < 0 ? (
+              <p>{historyMsg}</p>
+            ) : (
+              <>
+                <p>
+                  {nowStep + 1} / {algoHistory.length} 步：
+                </p>
+                <p>{historyMsg}</p>
+              </>
+            )}
+          </div>
         </div>
       </div>
       <div className="graph-container" ref={graphContainerRef}>
