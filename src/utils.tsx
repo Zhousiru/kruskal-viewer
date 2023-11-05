@@ -116,3 +116,23 @@ export function dumpGraph(matrix: number[][]) {
 
   return { nodes, links }
 }
+
+export function addNode(nodes: NodeDatum[], x: number, y: number) {
+  nodes.push({
+    nodeId: nodes.length,
+    colorGroup: nodes.length,
+    x,
+    y,
+  })
+}
+
+export function delLastNode(nodes: NodeDatum[], links: LinkDatum[]) {
+  const delIndex = nodes.length - 1
+  nodes.splice(delIndex, 1)
+  for (let index = links.length - 1; index >= 0; index--) {
+    const element = links[index]
+    if (element.source.nodeId === delIndex || element.target.nodeId === delIndex) {
+      links.splice(index, 1)
+    }
+  }
+}
