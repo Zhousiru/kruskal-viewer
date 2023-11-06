@@ -28,8 +28,10 @@ export function GraphViewer({
       .attr('cursor', 'default')
       .attr('style', 'user-select: none')
 
-    const allLinksGroup = svg.append('g')
-    const allNodesGroup = svg.append('g')
+    const container = svg.append('g')
+
+    const allLinksGroup = container.append('g')
+    const allNodesGroup = container.append('g')
     const color = d3.scaleOrdinal(d3.schemeCategory10)
 
     // Create base selectors.
@@ -68,6 +70,13 @@ export function GraphViewer({
       nodeGroup().attr('transform', (d) => `translate(${d.x}, ${d.y})`)
     }
 
+    // Zoom control.
+    function onZoom(event: any) {
+      container.attr('transform', event.transform)
+    }
+    const zoom = d3.zoom<SVGSVGElement, undefined>().scaleExtent([0.5, 4]).on('zoom', onZoom)
+    svg.call(zoom).call(zoom.transform, d3.zoomIdentity)
+
     function update() {
       // Create nodes.
       const nodeGroupData = nodeGroup().data(data.current.nodes, (d) => d.nodeId)
@@ -96,9 +105,9 @@ export function GraphViewer({
       nodeGroupEnter.call(
         d3
           .drag<SVGGElement, NodeDatum>()
-          .on('start', dragStart)
-          .on('drag', dragged)
-          .on('end', dragEnd)
+          .on('start', onDragStart)
+          .on('drag', onDragged)
+          .on('end', onDragEnd)
       )
 
       // Create links.
@@ -155,18 +164,18 @@ export function GraphViewer({
       simulation.alpha(1).restart()
     }
 
-    function dragStart(this: SVGGElement, event: any) {
+    function onDragStart(event: any) {
       if (!event.active) simulation.alphaTarget(0.3).restart()
       event.subject.fx = event.subject.x
       event.subject.fy = event.subject.y
     }
 
-    function dragged(event: any) {
+    function onDragged(event: any) {
       event.subject.fx = event.x
       event.subject.fy = event.y
     }
 
-    function dragEnd(event: any) {
+    function onDragEnd(event: any) {
       if (!event.active) simulation.alphaTarget(0)
       event.subject.fx = null
       event.subject.fy = null
