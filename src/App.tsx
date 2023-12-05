@@ -88,6 +88,9 @@ function App() {
       default:
         break
     }
+
+    setAlgoHistory([])
+    setNowStep(0)
   }
 
   function handleAddNode() {
@@ -97,6 +100,9 @@ function App() {
       nodes,
       links: graphData.links,
     })
+
+    setAlgoHistory([])
+    setNowStep(0)
   }
 
   function handleDelNode() {
@@ -107,10 +113,16 @@ function App() {
       nodes,
       links,
     })
+
+    setAlgoHistory([])
+    setNowStep(0)
   }
 
   function handleRandom() {
     setGraphData(dumpGraph(genRandomGraphMatrix(graphData.nodes.length)))
+
+    setAlgoHistory([])
+    setNowStep(0)
   }
 
   function handleCompute() {
